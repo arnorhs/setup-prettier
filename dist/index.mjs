@@ -62382,8 +62382,12 @@ ${stderr}
 
 // src/lib/getFilesToCheck.ts
 async function getFilesToCheck(ref) {
-  const { stdout } = await exec(`git diff --name-only ${ref}`);
-  return stdout.trim();
+  try {
+    const { stdout } = await exec(`git diff --name-only ${ref}`);
+    return stdout.trim();
+  } catch (e) {
+    return ".";
+  }
 }
 
 // src/lib/npmInstallWithTmpJson.ts

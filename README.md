@@ -22,6 +22,24 @@ light-weight fashion.
 
 To use this action in your github workflows:
 
+### 1. Simple usage
+
+```yml
+name: CI
+on: push
+
+jobs:
+  check_formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run prettier action
+        uses: arnorhs/prettier-check@v1.0.3
+```
+
+### 2. Only changed files in a pull request
+
 ```yml
 name: CI
 on: pull_request
@@ -33,6 +51,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          # without this, the git history will not have the main branch
           fetch-depth: 0
       - name: Run prettier action
         uses: arnorhs/prettier-check@v1.0.3
