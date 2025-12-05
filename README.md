@@ -44,11 +44,16 @@ This action only supports checking prettier for formatting, not running it and c
 
 It does not have any configuration / inputs yet.
 
-As of now, this action is _pretty_ opinionated. It presumes and requires the following:
+As of now, this action is _pretty_ opinionated:
 
-- Only checks changed files compared to the base branch (`GITHUB_BASE_REF`)
+- It assumes you haven't installed npm packages yet in node_modules - it will node_modules
+  after running, so if you've already done an `npm install`, you shouldn't really be using
+  this action anyways.
+- This only checks changed files compared to the base branch (`GITHUB_BASE_REF`) - it doesn't
+  format and commit the code.
 - Assumes your repo has a root `package.json`
 - Assumes you have your prettier plugins in the root `package.json`
+- Doesn't have any options, and doesn't allow you to customize the prettier invocation.
 
 ## TODO:
 
