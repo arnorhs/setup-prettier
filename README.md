@@ -1,6 +1,6 @@
 # Setup and run prettier --check with any plugin
 
-**Setup Prettier** is a github action that provides a way to
+**Prettier Check** is a github action that provides a way to
 setup and run `prettier --check` on your code, using your defined prettier version
 and dependencies without custom hacks.
 
@@ -35,7 +35,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Run prettier action
-        uses: arnorhs/setup-prettier@v1.0.2
+        uses: arnorhs/prettier-check@v1.0.3
 ```
 
 ## Limitations and opinions
