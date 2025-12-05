@@ -62415,6 +62415,12 @@ async function readPackageJson(pkgJsonPath) {
 
 // src/index.ts
 var CACHE_KEY = "prettier-action-cache-v1";
+var last = Date.now();
+function logTrace(message) {
+  const elapsed = ((Date.now() - last) / 1000).toFixed(2);
+  core.debug(`[${elapsed}s] trace: ${message}`);
+  last = Date.now();
+}
 var pkgJson;
 try {
   pkgJson = await readPackageJson("./package.json");
@@ -62422,6 +62428,7 @@ try {
   core.setFailed(e.message);
   process.exit(1);
 }
+logTrace("read package.json");
 var deps = Object.fromEntries(Object.entries({
   prettier: "latest",
   ...pkgJson.json.devDependencies,
@@ -62429,9 +62436,11 @@ var deps = Object.fromEntries(Object.entries({
 }).filter(([name]) => /^@?prettier(\/|$|\-)/.test(name)));
 var depsHash = calculateHash(JSON.stringify(deps));
 var hashKey = `${CACHE_KEY}-${depsHash}`;
+logTrace("hash calculated");
 var usedKey = await cache.restoreCache(["./node_modules"], hashKey, [
   `${CACHE_KEY}-`
 ]);
+logTrace(`restored cache (${usedKey ? "hit" : "miss"})`);
 if (usedKey === hashKey) {
   core.info("Cache hit! Using cached node_modules.");
 } else {
@@ -62439,7 +62448,7 @@ if (usedKey === hashKey) {
     name: "temp-prettier-action-package",
     dependencies: deps
   };
-  core.debug(`Generating package json:
+  logTrace(`installing with temporary package.json:
 ` + JSON.stringify(temporaryPackageJson, null, 2));
   try {
     await npmInstallWithTmpJson(temporaryPackageJson);
@@ -62447,12 +62456,14 @@ if (usedKey === hashKey) {
     core.setFailed(e.message);
     process.exit(1);
   }
+  logTrace("npm install completed");
   await cache.saveCache(["./node_modules"], hashKey);
+  logTrace("cache saved");
   core.info("Cache miss. Installed dependencies and saved to cache.");
 }
 try {
   const { stdout, stderr } = await exec("./node_modules/.bin/prettier --check .");
-  core.debug(`${stdout}
+  logTrace(`${stdout}
 ${stderr}`);
 } catch (e) {
   core.setFailed("Prettier check failed. See output for details.");
@@ -62460,6 +62471,7 @@ ${stderr}`);
 }
 try {
   await fs3.rmdir("./node_modules", { recursive: true });
+  logTrace("cleaned up node_modules");
 } catch (e) {
   core.warning(`Failed to clean up node_modules: ${e.message}`);
 }
