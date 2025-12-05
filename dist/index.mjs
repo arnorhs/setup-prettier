@@ -62441,9 +62441,7 @@ var usedKey = await cache.restoreCache(["./node_modules"], hashKey, [
   `${CACHE_KEY}-`
 ]);
 logTrace(`restored cache (${usedKey ? "hit" : "miss"})`);
-if (usedKey === hashKey) {
-  core.info("Cache hit! Using cached node_modules.");
-} else {
+if (usedKey !== hashKey) {
   const temporaryPackageJson = {
     name: "temp-prettier-action-package",
     dependencies: deps
@@ -62459,10 +62457,9 @@ if (usedKey === hashKey) {
   logTrace("npm install completed");
   await cache.saveCache(["./node_modules"], hashKey);
   logTrace("cache saved");
-  core.info("Cache miss. Installed dependencies and saved to cache.");
 }
 try {
-  const { stdout, stderr } = await exec("./node_modules/.bin/prettier --check .");
+  const { stdout, stderr } = await exec(`./node_modules/.bin/prettier --check $(git diff --name-only ${process.env.GITHUB_BASE_REF || "main"})`);
   logTrace(`${stdout}
 ${stderr}`);
 } catch (e) {
