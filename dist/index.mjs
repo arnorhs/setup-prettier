@@ -62382,9 +62382,6 @@ ${stderr}
 
 // src/lib/getFilesToCheck.ts
 async function getFilesToCheck(ref) {
-  if (!ref) {
-    return ".";
-  }
   const { stdout } = await exec(`git diff --name-only ${ref}`);
   return stdout.trim();
 }
@@ -62472,7 +62469,8 @@ if (usedKey !== hashKey) {
   logTrace("cache saved");
 }
 try {
-  const changedFiles = await getFilesToCheck(process.env.GITHUB_BASE_REF);
+  const baseRef = process.env.GITHUB_BASE_REF;
+  const changedFiles = baseRef ? await getFilesToCheck(`origin/${baseRef}`) : ".";
   core.info(`changed files since ${process.env.GITHUB_BASE_REF}: 
 ${changedFiles}`);
   await exec(`./node_modules/.bin/prettier --check ${changedFiles}`);
