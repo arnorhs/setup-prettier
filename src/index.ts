@@ -64,7 +64,10 @@ if (usedKey !== hashKey) {
 }
 
 try {
-  const changedFiles = await getFilesToCheck(process.env.GITHUB_BASE_REF)
+  const baseRef = process.env.GITHUB_BASE_REF
+  const changedFiles = baseRef
+    ? await getFilesToCheck(`origin/${baseRef}`)
+    : '.'
 
   core.info(
     `changed files since ${process.env.GITHUB_BASE_REF}: \n${changedFiles}`,
