@@ -62350,6 +62350,16 @@ function calculateHash(str) {
   return hashSum.digest("hex");
 }
 
+// src/lib/createLogTrace.ts
+function createLogTrace(logger) {
+  let last = Date.now();
+  return function logTrace(message) {
+    const elapsed = ((Date.now() - last) / 1000).toFixed(2);
+    logger.debug(`[trace] ${elapsed}: ${message}`);
+    last = Date.now();
+  };
+}
+
 // src/lib/exec.ts
 import cp from "node:child_process";
 function exec(cmd) {
@@ -62368,6 +62378,15 @@ ${stderr}
       }
     });
   });
+}
+
+// src/lib/getFilesToCheck.ts
+async function getFilesToCheck(ref) {
+  if (!ref) {
+    return ".";
+  }
+  const { stdout } = await exec(`git diff --name-only ${process.env.GITHUB_BASE_REF || "HEAD~1"}`);
+  return stdout.trim();
 }
 
 // src/lib/npmInstallWithTmpJson.ts
@@ -62392,43 +62411,37 @@ function restorePackageJson() {
   return fs.cp("./node_modules/.cache/_prettier_action_copy_packagejson", "./package.json", { force: true });
 }
 
-// src/lib/readPackageJson.ts
+// src/lib/readJsonFile.ts
 import fs2 from "node:fs/promises";
-async function readPackageJson(pkgJsonPath) {
-  let pkgJsonContents;
+async function readJsonFile(jsonPath) {
+  let contents;
   try {
-    pkgJsonContents = await fs2.readFile(pkgJsonPath, "utf8");
+    contents = await fs2.readFile(jsonPath, "utf8");
   } catch (e) {
     throw new Error(`Failed to read package.json: ${e.message}`);
   }
-  let pkgJson;
+  let json;
   try {
-    pkgJson = JSON.parse(pkgJsonContents);
+    json = JSON.parse(contents);
   } catch (e) {
-    throw new Error(`Failed to parse package.json: ${e.message}`);
+    throw new Error(`Failed to parse ${jsonPath}: ${e.message}`);
   }
   return {
-    contents: pkgJsonContents,
-    json: pkgJson
+    contents,
+    json
   };
 }
 
 // src/index.ts
 var CACHE_KEY = "prettier-action-cache-v1";
-var last = Date.now();
-function logTrace(message) {
-  const elapsed = ((Date.now() - last) / 1000).toFixed(2);
-  core.debug(`[${elapsed}s] trace: ${message}`);
-  last = Date.now();
-}
+var logTrace = createLogTrace(core);
 var pkgJson;
 try {
-  pkgJson = await readPackageJson("./package.json");
+  pkgJson = await readJsonFile("./package.json");
 } catch (e) {
   core.setFailed(e.message);
   process.exit(1);
 }
-logTrace("read package.json");
 var deps = Object.fromEntries(Object.entries({
   prettier: "latest",
   ...pkgJson.json.devDependencies,
@@ -62436,7 +62449,7 @@ var deps = Object.fromEntries(Object.entries({
 }).filter(([name]) => /^@?prettier(\/|$|\-)/.test(name)));
 var depsHash = calculateHash(JSON.stringify(deps));
 var hashKey = `${CACHE_KEY}-${depsHash}`;
-logTrace("hash calculated");
+logTrace(`ready to restore from cache ${hashKey}`);
 var usedKey = await cache.restoreCache(["./node_modules"], hashKey, [
   `${CACHE_KEY}-`
 ]);
@@ -62459,8 +62472,14 @@ if (usedKey !== hashKey) {
   logTrace("cache saved");
 }
 try {
-  const { stdout, stderr } = await exec(`./node_modules/.bin/prettier --check $(git diff --name-only ${process.env.GITHUB_BASE_REF || "main"})`);
-  logTrace(`${stdout}
+  const changedFiles = await getFilesToCheck(process.env.GITHUB_BASE_REF);
+  logTrace(`changed files:
+${changedFiles}`);
+  const { stdout, stderr } = await exec(`./node_modules/.bin/prettier --check ${changedFiles}`);
+  logTrace(`prettier ran
+stdout:
+${stdout}
+stderr:
 ${stderr}`);
 } catch (e) {
   core.setFailed("Prettier check failed. See output for details.");
