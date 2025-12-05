@@ -65,11 +65,9 @@ if (usedKey !== hashKey) {
 }
 
 try {
-  core.info(JSON.stringify(github.context.payload, null, 2))
-  const baseRef = process.env.GITHUB_BASE_REF
-  const changedFiles = baseRef
-    ? await getFilesToCheck(`origin/${baseRef}`)
-    : '.'
+  core.info(JSON.stringify(github.context.repo))
+  const baseRef = github.context.payload?.pull_request?.base?.repo?.sha
+  const changedFiles = baseRef ? await getFilesToCheck(baseRef) : '.'
 
   if (changedFiles !== '.') {
     core.info(`changed files since ${baseRef}: \n${changedFiles}`)
