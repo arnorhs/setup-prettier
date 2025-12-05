@@ -22,6 +22,8 @@ light-weight fashion.
 
 To use this action in your github workflows:
 
+### 1. Simple usage
+
 ```yml
 name: CI
 on: push
@@ -32,7 +34,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Run prettier action
+        uses: arnorhs/prettier-check@v1.0.3
+```
+
+### 2. Only changed files in a pull request
+
+```yml
+name: CI
+on: pull_request
+
+jobs:
+  check_formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
+          # without this, the git history will not have the main branch
           fetch-depth: 0
       - name: Run prettier action
         uses: arnorhs/prettier-check@v1.0.3
@@ -44,12 +63,18 @@ This action only supports checking prettier for formatting, not running it and c
 
 It does not have any configuration / inputs yet.
 
-As of now, this action is _pretty_ opinionated. It presumes and requires the following:
+As of now, this action is _pretty_ opinionated:
 
-- Only checks changed files compared to the base branch (`GITHUB_BASE_REF`)
+- This action doesn't format and commit the code.
+- It assumes you haven't installed npm packages yet in node_modules - it will node_modules
+  after running, so if you've already done an `npm install`, you shouldn't really be using
+  this action anyways.
+- If run in a `pull_request` action, it only checks changed files compared to the base
+  branch (`GITHUB_BASE_REF`)
 - Assumes your repo has a root `package.json`
 - Assumes you have your prettier plugins in the root `package.json`
+- Doesn't have any options, and doesn't allow you to customize the prettier invocation.
 
 ## TODO:
 
-Join paths using
+Make it work on other platforms

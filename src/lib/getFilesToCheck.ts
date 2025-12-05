@@ -1,13 +1,11 @@
 import { exec } from './exec'
 
-export async function getFilesToCheck(ref: string | undefined) {
-  if (!ref) {
+export async function getFilesToCheck(ref: string) {
+  try {
+    const { stdout } = await exec(`git diff --name-only ${ref}`)
+
+    return stdout.trim()
+  } catch (e: any) {
     return '.'
   }
-
-  const { stdout } = await exec(
-    `git diff --name-only ${process.env.GITHUB_BASE_REF || 'HEAD~1'}`,
-  )
-
-  return stdout.trim()
 }

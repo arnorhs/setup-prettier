@@ -64,19 +64,27 @@ if (usedKey !== hashKey) {
 }
 
 try {
-  const changedFiles = await getFilesToCheck(process.env.GITHUB_BASE_REF)
-  logTrace(`changed files:\n${changedFiles}`)
-  const { stdout, stderr } = await exec(
-    `./node_modules/.bin/prettier --check ${changedFiles}`,
+  const baseRef = process.env.GITHUB_BASE_REF
+  const changedFiles = baseRef
+    ? await getFilesToCheck(`origin/${baseRef}`)
+    : '.'
+
+  core.info(
+    `changed files since ${process.env.GITHUB_BASE_REF}: \n${changedFiles}`,
   )
-  logTrace(`prettier ran\nstdout:\n${stdout}\nstderr:\n${stderr}`)
-} catch (e) {
-  core.setFailed('Prettier check failed. See output for details.')
+
+  await exec(
+    `./node_modules/.bin/prettier --check ${changedFiles.split('\n').join(' ')}`,
+  )
+
+  logTrace(`prettier ran`)
+} catch (e: any) {
+  core.setFailed('Prettier check failed.\n' + e.message)
   process.exit(1)
 }
 
 try {
-  await fs.rmdir('./node_modules', { recursive: true })
+  await fs.rm('./node_modules', { recursive: true })
   logTrace('cleaned up node_modules')
 } catch (e: any) {
   core.warning(`Failed to clean up node_modules: ${e.message}`)
