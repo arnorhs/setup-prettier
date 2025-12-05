@@ -1,5 +1,6 @@
 import * as cache from '@actions/cache'
 import * as core from '@actions/core'
+import * as github from '@actions/github'
 import fs from 'node:fs/promises'
 import { calculateHash } from './lib/calculateHash'
 import { createLogTrace } from './lib/createLogTrace'
@@ -64,15 +65,14 @@ if (usedKey !== hashKey) {
 }
 
 try {
+  core.info(JSON.stringify(github.context.payload, null, 2))
   const baseRef = process.env.GITHUB_BASE_REF
   const changedFiles = baseRef
     ? await getFilesToCheck(`origin/${baseRef}`)
     : '.'
 
   if (changedFiles !== '.') {
-    core.info(
-      `changed files since ${process.env.GITHUB_BASE_REF}: \n${changedFiles}`,
-    )
+    core.info(`changed files since ${baseRef}: \n${changedFiles}`)
   }
 
   await exec(
