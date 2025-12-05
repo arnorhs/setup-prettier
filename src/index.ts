@@ -73,7 +73,9 @@ try {
     `changed files since ${process.env.GITHUB_BASE_REF}: \n${changedFiles}`,
   )
 
-  await exec(`./node_modules/.bin/prettier --check ${changedFiles}`)
+  await exec(
+    `./node_modules/.bin/prettier --check ${changedFiles.split('\n').join(' ')}`,
+  )
 
   logTrace(`prettier ran`)
 } catch (e: any) {

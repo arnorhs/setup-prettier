@@ -62473,7 +62473,8 @@ try {
   const changedFiles = baseRef ? await getFilesToCheck(`origin/${baseRef}`) : ".";
   core.info(`changed files since ${process.env.GITHUB_BASE_REF}: 
 ${changedFiles}`);
-  await exec(`./node_modules/.bin/prettier --check ${changedFiles}`);
+  await exec(`./node_modules/.bin/prettier --check ${changedFiles.split(`
+`).join(" ")}`);
   logTrace(`prettier ran`);
 } catch (e) {
   core.setFailed(`Prettier check failed.
