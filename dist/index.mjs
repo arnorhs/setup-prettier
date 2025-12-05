@@ -62385,7 +62385,7 @@ async function getFilesToCheck(ref) {
   if (!ref) {
     return ".";
   }
-  const { stdout } = await exec(`git diff --name-only ${process.env.GITHUB_BASE_REF || "HEAD~1"}`);
+  const { stdout } = await exec(`git diff --name-only ${ref}`);
   return stdout.trim();
 }
 
@@ -62473,20 +62473,16 @@ if (usedKey !== hashKey) {
 }
 try {
   const changedFiles = await getFilesToCheck(process.env.GITHUB_BASE_REF);
-  logTrace(`changed files:
+  core.info(`changed files since ${process.env.GITHUB_BASE_REF}: 
 ${changedFiles}`);
-  const { stdout, stderr } = await exec(`./node_modules/.bin/prettier --check ${changedFiles}`);
-  logTrace(`prettier ran
-stdout:
-${stdout}
-stderr:
-${stderr}`);
+  await exec(`./node_modules/.bin/prettier --check ${changedFiles}`);
+  logTrace(`prettier ran`);
 } catch (e) {
   core.setFailed("Prettier check failed. See output for details.");
   process.exit(1);
 }
 try {
-  await fs3.rmdir("./node_modules", { recursive: true });
+  await fs3.rm("./node_modules", { recursive: true });
   logTrace("cleaned up node_modules");
 } catch (e) {
   core.warning(`Failed to clean up node_modules: ${e.message}`);
