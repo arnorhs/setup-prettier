@@ -8,6 +8,14 @@ import { readPackageJson } from './lib/readPackageJson'
 
 const CACHE_KEY = 'prettier-action-cache-v1'
 
+let last = Date.now()
+
+function logTrace(message: string) {
+  const elapsed = ((Date.now() - last) / 1000).toFixed(2)
+  core.debug(`[${elapsed}s] trace: ${message}`)
+  last = Date.now()
+}
+
 let pkgJson
 try {
   pkgJson = await readPackageJson('./package.json')
@@ -15,6 +23,8 @@ try {
   core.setFailed(e.message)
   process.exit(1)
 }
+
+logTrace('read package.json')
 
 const deps = Object.fromEntries(
   Object.entries({
@@ -27,9 +37,13 @@ const deps = Object.fromEntries(
 const depsHash = calculateHash(JSON.stringify(deps))
 const hashKey = `${CACHE_KEY}-${depsHash}`
 
+logTrace('hash calculated')
+
 const usedKey = await cache.restoreCache(['./node_modules'], hashKey, [
   `${CACHE_KEY}-`,
 ])
+
+logTrace(`restored cache (${usedKey ? 'hit' : 'miss'})`)
 
 if (usedKey === hashKey) {
   core.info('Cache hit! Using cached node_modules.')
@@ -39,8 +53,8 @@ if (usedKey === hashKey) {
     dependencies: deps,
   }
 
-  core.debug(
-    'Generating package json:\n' +
+  logTrace(
+    'installing with temporary package.json:\n' +
       JSON.stringify(temporaryPackageJson, null, 2),
   )
 
@@ -51,7 +65,11 @@ if (usedKey === hashKey) {
     process.exit(1)
   }
 
+  logTrace('npm install completed')
+
   await cache.saveCache(['./node_modules'], hashKey)
+  logTrace('cache saved')
+
   core.info('Cache miss. Installed dependencies and saved to cache.')
 }
 
@@ -59,7 +77,7 @@ try {
   const { stdout, stderr } = await exec(
     './node_modules/.bin/prettier --check .',
   )
-  core.debug(`${stdout}\n${stderr}`)
+  logTrace(`${stdout}\n${stderr}`)
 } catch (e) {
   core.setFailed('Prettier check failed. See output for details.')
   process.exit(1)
@@ -67,6 +85,7 @@ try {
 
 try {
   await fs.rmdir('./node_modules', { recursive: true })
+  logTrace('cleaned up node_modules')
 } catch (e: any) {
   core.warning(`Failed to clean up node_modules: ${e.message}`)
 }
